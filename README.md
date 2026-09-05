@@ -269,6 +269,23 @@ Screenshots of the workflow, AI analysis, duplicate detection, PostgreSQL storag
 12. **Email Intelligence Report**  
     Automatically delivers the completed briefing through Gmail.
 
+    ### 📦 Importable n8n Workflow
+
+The complete n8n workflow is included in this repository:
+
+➡️ [View / Download the n8n Workflow](workflow/ai-automation-intelligence-monitor.json)
+
+The public workflow has been sanitised for security. Credential bindings and account-specific identifiers have been removed.
+
+To run the workflow, import the JSON file into n8n and configure your own:
+
+- OpenAI API credentials
+- PostgreSQL credentials
+- Gmail credentials
+- RSS/news sources as required
+
+No API keys, passwords, OAuth tokens or private credentials are included in this repository.
+
 ### Example Data Stored
 
 ```text
