@@ -158,6 +158,38 @@ Instead of an employee reviewing 15 incoming articles manually, the workflow can
 
 ---
 
+---
+
+## 📸 Solution in Action
+
+The screenshots below demonstrate the key stages of the automated intelligence pipeline.
+
+### 1. Complete Automation Workflow
+
+The n8n workflow connects article collection, duplicate detection, AI analysis, PostgreSQL storage, relevance filtering and automated reporting into one end-to-end process.
+
+![Complete n8n Automation Workflow](screenshots/01-complete-n8n-workflow.png)
+
+### 2. AI Article Analysis
+
+New articles are analysed automatically to identify structured business information such as company, category, relevance score and summary.
+
+![AI Article Analysis](screenshots/04-ai-article-analysis.png)
+
+### 3. Structured Intelligence Storage
+
+Analysed information is stored in PostgreSQL, creating a searchable history of previously processed business intelligence.
+
+![PostgreSQL Intelligence Storage](screenshots/06-postgresql-intelligence-storage.png)
+
+### 4. Automated Intelligence Report
+
+The most relevant developments are combined into a concise intelligence briefing and delivered automatically by email.
+
+![Automated Email Intelligence Report](screenshots/07-email-intelligence-report.png)
+
+---
+
 ## 🎥 Demo
 
 A short demonstration of the complete automation workflow is available below.
