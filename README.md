@@ -175,7 +175,7 @@ The demo shows the system:
 
 ### Demo Video
 
-🎬 **60–90 second workflow demonstration:** Coming soon
+🎬 **60–90 second workflow demonstration:** ▶️ [Watch the AI & Automation Intelligence Monitor Demo](demo/ai-automation-intelligence-monitor-demo.mp4)
 
 ### Screenshots
 
