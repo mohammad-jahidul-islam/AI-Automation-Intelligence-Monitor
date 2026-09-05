@@ -1,0 +1,492 @@
+{
+  "name": "AI & Automation Intelligence Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are a business intelligence analyst specializing in AI, automation, and technology.\n\nCreate a concise Daily AI & Automation Intelligence Report from the articles below.\n\nArticle titles:\n{{ JSON.stringify($json.title) }}\n\nCompanies:\n{{ JSON.stringify($json.company) }}\n\nCategories:\n{{ JSON.stringify($json.category) }}\n\nRelevance scores:\n{{ JSON.stringify($json.relevance_score) }}\nArticle summaries:\n{{ JSON.stringify($json.summary) }}\n\nCreate the report in this format:\n\nDAILY AI & AUTOMATION INTELLIGENCE REPORT\n\nExecutive Summary:\nGive a short overview of the most important developments.\n\nKey Developments:\nFor each article, explain:\n- Article title\n- Company\n- Category\n- Relevance score\n- Why the development matters\n\nBusiness Impact:\nExplain the possible impact on AI automation, businesses, developers, or the automation industry.\n\nKey Takeaways:\nGive 3 concise actionable takeaways.\n\nKeep the report professional, factual, concise, and easy to scan.\nDo not invent information that is not available from the supplied data."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1824,
+        -160
+      ],
+      "id": "4b8e8517-0406-4413-b7ff-679d80c352f6",
+      "name": "Generate Intelligence Report"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        -176
+      ],
+      "id": "3ff17c26-2efe-4e13-8a7e-e90fedf87410",
+      "name": "Manual Test Trigger"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -96,
+        -16
+      ],
+      "id": "2426bbc8-ee73-4684-a39a-68fa4c4d4ac5",
+      "name": "Daily Schedule Trigger",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "url": "https://blog.n8n.io/rss",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        64,
+        -80
+      ],
+      "id": "1366717a-a06b-48fd-9d3a-fe6eb5db1285",
+      "name": "Fetch AI & Automation News"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "447e8f4b-ec54-4afc-a4fc-6c9b60b4762f",
+              "name": "title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "b2cb9930-debf-495c-8f6e-03ff3443dc7a",
+              "name": "description",
+              "value": "={{ $json[\"content:encodedSnippet\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "8c4891cd-e68f-4b17-ab77-87a57e5065ee",
+              "name": "url",
+              "value": "={{ $json.link }}",
+              "type": "string"
+            },
+            {
+              "id": "8dd1521d-c11e-46b7-a794-4f0e561d45bf",
+              "name": "source",
+              "value": "n8n Blog",
+              "type": "string"
+            },
+            {
+              "id": "369520d0-3fa7-4349-b9fc-94cd84e06b7c",
+              "name": "published_at",
+              "value": "={{ $json.isoDate }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        -112
+      ],
+      "id": "3e609091-3f00-46cf-afbd-2862a0a302f9",
+      "name": "Normalize Article Data"
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of items) {\n  const data = item.json;\n\n  const title = data.title || '';\n  const description = data.description || '';\n\n  // Combine title and description\n  let text = `${title} ${description}`;\n\n  // Remove HTML tags\n  text = text.replace(/<[^>]+>/g, ' ');\n\n  // Remove extra spaces, tabs and line breaks\n  text = text.replace(/\\s+/g, ' ').trim();\n\n  // Create a simple deterministic fingerprint\n  let hash = 0;\n\n  const normalizedText = text.toLowerCase();\n\n  for (let i = 0; i < normalizedText.length; i++) {\n    hash = ((hash << 5) - hash) + normalizedText.charCodeAt(i);\n    hash |= 0;\n  }\n\n  const fingerprint = Math.abs(hash).toString(16);\n\n  // Add new fields\n  data.clean_text = text;\n  data.fingerprint = fingerprint;\n}\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        -80
+      ],
+      "id": "df4df6ff-b3d8-4efd-8b53-483dbf1f0962",
+      "name": "Generate Article Fingerprint"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT EXISTS (\n    SELECT 1\n    FROM intelligence_items\n    WHERE fingerprint = $1\n) AS is_duplicate;",
+        "options": {
+          "queryReplacement": "={{ $json.fingerprint }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        544,
+        -80
+      ],
+      "id": "f9ae97d1-97d8-4dc2-8692-8ab4fdce06f5",
+      "name": "Check for Duplicate Article"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "660ea67e-d6dc-4bfb-8aaf-ebbba1f75c68",
+              "leftValue": "={{ $json.is_duplicate }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        704,
+        -80
+      ],
+      "id": "a4692f30-8b98-47a5-96df-b78f81a979af",
+      "name": "Is New Article?"
+    },
+    {
+      "parameters": {
+        "maxItems": 2
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        864,
+        -176
+      ],
+      "id": "2ab16c3e-3644-4622-b933-cef35aaab8af",
+      "name": "Limit Articles for AI Analysis"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are a business intelligence analyst.\n\nAnalyze this article for developments related to AI, automation, software, technology, products, companies, and markets.\n\nArticle:\n{{ $('Generate Article Fingerprint').item.json.clean_text }}\n\nReturn:\n- company: main company or organization mentioned. Use \"Unknown\" if none.\n- category: choose the most suitable category.\n- relevance_score: integer from 0 to 100.\n- summary: concise 1-2 sentence business intelligence summary.\n\nScoring:\n0-29 = low relevance\n30-59 = moderate relevance\n60-79 = relevant\n80-100 = highly important"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_schema",
+              "name": "intelligence_analysis",
+              "schema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"company\": {\n      \"type\": \"string\"\n    },\n    \"category\": {\n      \"type\": \"string\"\n    },\n    \"relevance_score\": {\n      \"type\": \"integer\",\n      \"minimum\": 0,\n      \"maximum\": 100\n    },\n    \"summary\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"company\",\n    \"category\",\n    \"relevance_score\",\n    \"summary\"\n  ],\n  \"additionalProperties\": false\n}",
+              "description": "Structured intelligence analysis of an AI or automation news article."
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1024,
+        -128
+      ],
+      "id": "5797e8c8-c1f4-42dd-a753-d52ba65c2343",
+      "name": "Analyse Article Relevance with AI"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO intelligence_items (\n    title,\n    description,\n    url,\n    source,\n    published_at,\n    clean_text,\n    fingerprint,\n    company,\n    category,\n    relevance_score,\n    summary\n)\nVALUES (\n    $1,\n    $2,\n    $3,\n    $4,\n    $5,\n    $6,\n    $7,\n    $8,\n    $9,\n    $10,\n    $11\n)\nON CONFLICT (fingerprint)\nDO UPDATE SET\n    company = EXCLUDED.company,\n    category = EXCLUDED.category,\n    relevance_score = EXCLUDED.relevance_score,\n    summary = EXCLUDED.summary\nRETURNING id, title, company, category, relevance_score;",
+        "options": {
+          "queryBatching": "independently",
+          "queryReplacement": "={{\n[\n  $('Generate Article Fingerprint').item.json.title,\n  $('Generate Article Fingerprint').item.json.description,\n  $('Generate Article Fingerprint').item.json.url,\n  $('Generate Article Fingerprint').item.json.source,\n  $('Generate Article Fingerprint').item.json.published_at,\n  $('Generate Article Fingerprint').item.json.clean_text,\n  $('Generate Article Fingerprint').item.json.fingerprint,\n  $json.output[0].content[0].text.company,\n  $json.output[0].content[0].text.category,\n  $json.output[0].content[0].text.relevance_score,\n  $json.output[0].content[0].text.summary\n]\n}}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1312,
+        -160
+      ],
+      "id": "cb1657bd-5842-4633-b871-33d2a30fe36f",
+      "name": "Save Analysed Article to PostgreSQL"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "34d263b6-c2a2-4022-aad7-d5e102c271f2",
+              "leftValue": "={{ $json.relevance_score }}",
+              "rightValue": 70,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1504,
+        -64
+      ],
+      "id": "9993a69a-bf1b-4098-a6dc-ccb44cef74fb",
+      "name": "Is Relevance Score ≥ 70?"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "title"
+            },
+            {
+              "fieldToAggregate": "company"
+            },
+            {
+              "fieldToAggregate": "category"
+            },
+            {
+              "fieldToAggregate": "relevance_score"
+            },
+            {
+              "fieldToAggregate": "summary"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1664,
+        -160
+      ],
+      "id": "9894e2bb-49f8-4202-9c60-8937788db40c",
+      "name": "Aggregate Relevant Articles"
+    },
+    {
+      "parameters": {
+        "sendTo": "your-email@example.com",
+        "subject": "={{ 'AI & Automation Intelligence Brief — ' + $now.toFormat('dd LLL yyyy') }}",
+        "message": "={{\n`\n<div style=\"font-family: Arial, sans-serif; max-width: 760px; margin: auto; line-height: 1.6; color: #222;\">\n\n  <div style=\"border-bottom: 3px solid #333; padding-bottom: 12px; margin-bottom: 22px;\">\n    <h1 style=\"margin:0; font-size:24px;\">\n      AI & Automation Intelligence Brief\n    </h1>\n    <p style=\"margin:6px 0 0; color:#666;\">\n      ${$now.toFormat('cccc, dd LLLL yyyy')}\n    </p>\n  </div>\n\n  <p style=\"font-size:15px;\">\n    Your latest AI and automation intelligence report is below.\n    Articles have been filtered, analysed and prioritised automatically.\n  </p>\n\n  <div style=\"\n      background:#f6f7f8;\n      border-left:4px solid #333;\n      padding:18px;\n      margin-top:20px;\n      white-space:pre-wrap;\n      font-size:15px;\n  \">\n${$json.output[0].content[0].text}\n  </div>\n\n  <div style=\"\n      margin-top:28px;\n      padding-top:15px;\n      border-top:1px solid #ddd;\n      font-size:12px;\n      color:#777;\n  \">\n    <strong>Automated Intelligence Monitor</strong><br>\n    RSS → Duplicate Detection → AI Analysis → Relevance Filtering →\n    PostgreSQL → Intelligence Report → Email Delivery\n    <br><br>\n    Generated automatically at ${$now.toFormat('HH:mm')} on\n    ${$now.toFormat('dd LLL yyyy')}.\n  </div>\n\n</div>\n`\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2112,
+        -160
+      ],
+      "id": "5a129886-1c69-4bc8-8e42-3754a7e9b16a",
+      "name": "Email Intelligence Report"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Generate Intelligence Report": {
+      "main": [
+        [
+          {
+            "node": "Email Intelligence Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Test Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch AI & Automation News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch AI & Automation News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch AI & Automation News": {
+      "main": [
+        [
+          {
+            "node": "Normalize Article Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Article Data": {
+      "main": [
+        [
+          {
+            "node": "Generate Article Fingerprint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Article Fingerprint": {
+      "main": [
+        [
+          {
+            "node": "Check for Duplicate Article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check for Duplicate Article": {
+      "main": [
+        [
+          {
+            "node": "Is New Article?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is New Article?": {
+      "main": [
+        [
+          {
+            "node": "Limit Articles for AI Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit Articles for AI Analysis": {
+      "main": [
+        [
+          {
+            "node": "Analyse Article Relevance with AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyse Article Relevance with AI": {
+      "main": [
+        [
+          {
+            "node": "Save Analysed Article to PostgreSQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Analysed Article to PostgreSQL": {
+      "main": [
+        [
+          {
+            "node": "Is Relevance Score ≥ 70?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Relevance Score ≥ 70?": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Relevant Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Relevant Articles": {
+      "main": [
+        [
+          {
+            "node": "Generate Intelligence Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "Europe/Dublin",
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionTimeout": -1,
+    "availableInMCP": false
+  },
+  "tags": []
+}
